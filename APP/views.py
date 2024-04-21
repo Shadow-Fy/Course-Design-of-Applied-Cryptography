@@ -1,11 +1,22 @@
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
 
+
 @csrf_exempt
-def receive_data(request):
-    if request.method == 'POST':
-        data = json.loads(request.body)
-        key_value = data.get('username')
-        print('接收到的数据:', key_value)
-        return HttpResponse(status=200)
+def login(request):
+    '''
+    json格式
+    {
+        'username':''
+        'password:''
+    }
+    :param request:
+    :return:
+    '''
+    body = json.loads(request.body)
+    return JsonResponse(
+        {
+            'data': '1111'
+        }
+    )

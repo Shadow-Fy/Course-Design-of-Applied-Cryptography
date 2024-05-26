@@ -1,6 +1,7 @@
 import json
 import requests
 
+
 def login():
     data = json.dumps(
         {
@@ -13,3 +14,6 @@ def login():
         data=data
     )
     return r
+
+# def sendImg():
+#     img = cv2.imread

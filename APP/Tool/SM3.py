@@ -1,5 +1,5 @@
 import binascii
-from gmssl import sm4, sm3
+from gmssl import sm3
 
 
 def sm3_hash(message: bytes):
@@ -11,27 +11,26 @@ def sm3_hash(message: bytes):
 
     msg_list = [i for i in message]
     hash_hex = sm3.sm3_hash(msg_list)
-    print(hash_hex)
+    return hash_hex
 
     # bytes2hex(hash_hex);
 
-    hash_bytes = bytes.fromhex(hash_hex)
-    print(hash_bytes)
+    # hash_bytes = bytes.fromhex(hash_hex)
+    # print(hash_bytes)
 
     # return bytes.hash
     # return hash
 
 
-def bytes2hex(bytesData):
-    hex = binascii.hexlify(bytesData)
-    print(hex)
-    print(hex.decode())
-    return hex
+# def bytes2hex(bytesData):
+#     hex = binascii.hexlify(bytesData)
+#     print(hex)
+#     print(hex.decode())
+#     return hex
 
 
 # main
-if __name__ == '__main__':
-    print("main begin");
-    message = b"123456"  # bytes类型
-    sm3_hash(message);
-
+# if __name__ == '__main__':
+#     print("main begin")
+#     message = b"111111"
+#     print(sm3_hash(message))

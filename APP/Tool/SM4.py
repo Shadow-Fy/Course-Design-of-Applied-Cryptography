@@ -29,20 +29,20 @@ def sm4_decode(key, data):
     sm4Alg.set_key(key.encode(), sm4.SM4_DECRYPT)  # 设置密钥
     deRes = sm4Alg.crypt_ecb(bytes.fromhex(data))  # 开始解密。十六进制类型,ecb模式
     deHexStr = deRes.decode()
-    print("解密后明文:", deRes);
-    print("解密后明文hex:", deHexStr);
+    print("解密后明文:", deRes)
+    print("解密后明文hex:", deHexStr)
     return deHexStr
 
 #测试函数
 def test():
-    key = "E1A90FB64DDE12AE";
+    key = "E1A90FB64DDE12AE"
     strData = "12345abcde"
 
-    enHexRes = sm4_encode(key,strData);
+    enHexRes = sm4_encode(key,strData)
 
-    print("解密测试===",enHexRes);
+    print("解密测试===",enHexRes)
 
-    sm4_decode(key,enHexRes);
+    sm4_decode(key,enHexRes)
 
 # main
 if __name__ == '__main__':

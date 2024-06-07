@@ -1,8 +1,8 @@
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
-from APP.Data.Info import userList, UserData, msgList
-from APP.Tool import SM3
+from APP.Data.Info import userList, UserData, UserKeys, MessageData
+from APP.Tool import SM3, diffie
 
 
 @csrf_exempt
@@ -136,6 +136,9 @@ def addFriend(request):
             for use in userList:
                 # 看是否有这个用户存在
                 if use.username == friend:
+                    privateKey = diffie.getPrivateKey()
+                    use.userKeyList.append(UserKeys(user.username, privateKey))
+                    user.userKeyList.append(UserKeys(use.username, privateKey))
                     use.friendList.append(user.username)
                     user.friendList.append(friend)
                     return JsonResponse({
@@ -156,7 +159,7 @@ def addFriend(request):
 def updateFriend(request):
     body = json.loads(request.body)
     username = body['username']
-    print("服务器收到好友列表更新信息" + username)
+    print("服务器收到用户 {" + username + "} 好友列表更新信息")
     for user in userList:
         if user.username == username:
             print("服务器返回user.friendList,username=" + user.username)
@@ -165,41 +168,54 @@ def updateFriend(request):
 
 @csrf_exempt
 def sendMsg(request):
-    '''
-    json格式
-    {
-        'send':'发送者username'
-        'recv‘:'接受者username'
-        'msg':'发送内容’
-    }
-    :param request:
-    :return:
-    '''
     # 获取收到的信息
     body = json.loads(request.body)
     send = body['sendname']
     recv = body['recvname']
     msg = body['msg']
-    msgList.append({
-        'send': send,
-        'recv': recv,
-        'msg': msg
-    })
-    # 循环所有消息列表，如果有是发送给自己的信息，则返回
-    for message in msgList:
-        if message['recv'] == send:
+    for user in userList:
+        if user.username == recv:
+            user.msgList.append(MessageData(send, msg))
+            print(send + '）发送的信息已经存储在（' + recv + '）的消息列表中')
             return JsonResponse({
-                'msg': message['msg'],
+                'code': '1',
+                'msg': '发送成功'
             })
 
 
 @csrf_exempt
-def loopMsg(request):
-    # 获取想获得轮询消息的人，将对应消息全部发送
+def get_image(request):
     body = json.loads(request.body)
-    send = body['sendname']
-    for message in msgList:
-        if message['recv'] == send:
+    username = body['username']
+    print("服务器收到用户 {" + username + "} 的消息更新请求")
+    for user in userList:
+        if user.username == username:
+            if user.msgList:
+                msg_list = [msg.to_dict() for msg in user.msgList]
+            else:
+                msg_list = []
+            return JsonResponse(msg_list, safe=False)
+
+
+@csrf_exempt
+def msg_clean(request):
+    body = json.loads(request.body)
+    sendUser = body['sendUser']
+    username = body['username']
+    for user in userList:
+        if user.username == username:
+            user.remove_message_by_sender(sendUser)
             return JsonResponse({
-                'msg': message['msg'],
+                'code': '1',
+                'msg': '清楚成功'
             })
+
+
+@csrf_exempt
+def updateUserData(request):
+    body = json.loads(request.body)
+    username = body['username']
+    for user in userList:
+        if user.username == username:
+            user_data_dict = user.to_dict()
+            return JsonResponse(user_data_dict)

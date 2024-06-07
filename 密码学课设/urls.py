@@ -16,13 +16,16 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from APP.views import login, register, personInfo, updatePersonInfo, addFriend, updateFriend
+from APP.views import login, register, addFriend, updateFriend, updateUserData, sendMsg, \
+    get_image, msg_clean
 
 urlpatterns = [
     path('api/login', login),
-    # path('api/personInfo', personInfo),
-    # path('api/updatePersonInfo', updatePersonInfo),
     path('api/addFriend', addFriend),
     path('api/updateFriend', updateFriend),
     path('api/register', register),
+    path('api/updateUserData', updateUserData),
+    path('api/sendMsg', sendMsg),
+    path('api/get_image', get_image),
+    path('api/msg_clean', msg_clean),
 ]

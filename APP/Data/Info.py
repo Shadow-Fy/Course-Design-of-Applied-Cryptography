@@ -7,9 +7,49 @@ class UserData:
         self.sex = sex
         self.phonenumber = phonenumber
         self.friendList = []
+        self.userKeyList = []
+        self.msgList = []
+
+    def to_dict(self):
+        return {
+            'username': self.username,
+            'password': self.password,
+            'nikename': self.nikename,
+            'age': self.age,
+            'sex': self.sex,
+            'phonenumber': self.phonenumber,
+            'friendList': self.friendList,
+            'userKeyList': [key.to_dict() for key in self.userKeyList],
+            'msgList': [msg.to_dict() for msg in self.msgList]
+        }
+
+    def remove_message_by_sender(self, sendUser):
+        self.msgList = [msg for msg in self.msgList if msg.sendUser != sendUser]
+
+
+class UserKeys:
+    def __init__(self, friendUser, private_key):
+        self.friendUser = friendUser
+        self.private_key = private_key
+
+    def to_dict(self):
+        return {
+            'friendUser': self.friendUser,
+            'private_key': self.private_key
+        }
+
+
+class MessageData:
+    def __init__(self, sendUser, msg):
+        self.sendUser = sendUser
+        self.msg = msg
+
+    def to_dict(self):
+        return {
+            'sendUser': self.sendUser,
+            'msg': self.msg
+        }
 
 
 userList = []
 userList.append(UserData("111111", "c7f66beee198fb411c8623e53cbbc6eb1e0f078b5d68ed7f10d02ffb0af46d44", "", "", "", ""))
-
-msgList = []

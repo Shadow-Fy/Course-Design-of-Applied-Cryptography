@@ -1,14 +1,18 @@
+import base64
 import tkinter as tk
-from tkinter import messagebox, filedialog
+from tkinter import messagebox, filedialog, ttk
 import json
 import requests
 from PIL import Image, ImageTk
-from APP.Data.Info import userList, UserData, msgList
+from APP.Data.Info import userList, UserData
+from APP.Tool import ImageByte, SM4
+from APP.Tool.ImageByte import byte2image
 
 # 全局变量
 root = None
 register_window = None
 clientUsername = ''
+clientUserData = None
 
 
 # 登录界面
@@ -103,7 +107,7 @@ def on_register_window_close():
 
 
 def main_screen():
-    global root, chat_display, chat_input, friend_list, friend_entry
+    global root, chat_display, chat_input, friend_list, friend_entry, friend_option_menu, selected_friend, selected_friend_label
     root = tk.Tk()
     root.title("主界面")
     root.geometry("700x500")  # 设置窗口大小
@@ -136,12 +140,24 @@ def main_screen():
     # 消息输入区域
     input_frame = tk.Frame(chat_frame, height=80)
     input_frame.pack(side="bottom", fill="x")
+
+    # 好友选择下拉框
+    selected_friend = tk.StringVar()
+    friend_option_menu = ttk.OptionMenu(input_frame, selected_friend, '', *[])
+    friend_option_menu.pack(side="left", padx=5)
+
+    # 创建标签显示选择的好友
+    selected_friend_label = tk.Label(input_frame, text='', font=("Arial", 10), width=10)
+    selected_friend_label.pack(side="left", padx=5)
+
     chat_input = tk.Entry(input_frame, width=50)
     chat_input.pack(side="left", fill="x", expand=True)
+
     send_button = tk.Button(input_frame, text="发送", command=send_message)
-    send_button.pack(side="left")
+    send_button.pack(side="left", padx=5)
+
     send_image_button = tk.Button(input_frame, text="发送图片", command=send_image)
-    send_image_button.pack(side="right")
+    send_image_button.pack(side="right", padx=5)
 
     # 右侧添加好友区域
     friend_frame = tk.Frame(main_frame, width=180, height=360)
@@ -158,7 +174,9 @@ def main_screen():
     add_friend_button.pack(side="top", pady=10)
 
     update_friend_list()
-    root.after(100, update_friend_list)  # 每5秒钟更新一次
+    update_UserData_msg()
+    # root.after(10, update_friend_list)  # 每0.1秒钟更新一次
+    # root.after(10, update_UserData_msg)  # 每0.1秒钟更新一次
     root.mainloop()
 
 
@@ -189,6 +207,7 @@ def login():
     else:
         global clientUsername
         clientUsername = username
+        update_userData()
         print("当前用户为" + clientUsername)
         root.destroy()
         main_screen()
@@ -251,6 +270,7 @@ def add_friend():
             messagebox.showerror('Success', msg)
             friend_entry.delete(0, tk.END)
             update_friend_list()
+            update_userData()
 
 
 def update_friend_list():
@@ -271,6 +291,22 @@ def update_friend_list():
         print("客户端好友列表添加好友：" + friend)
         friend_list.insert(tk.END, friend)
 
+    # 更新好友选择下拉框
+    menu = friend_option_menu['menu']
+    menu.delete(0, 'end')
+    for friend in friendList:
+        menu.add_command(label=friend, command=tk._setit(selected_friend, friend))
+    # 设置选项菜单的值为当前选择的对象
+    if selected_friend.get() not in friendList:
+        selected_friend.set("")  # 如果当前选择的对象不在新的好友列表中，清空选择
+
+    # 如果当前选择的对象不在新的好友列表中，将其设置为第一个好友
+    if selected_friend.get() not in friendList and friendList:
+        selected_friend.set(friendList[0])
+    else:
+        selected_friend.set(selected_friend.get())  # 如果当前选择的对象在新的好友列表中，设置为当前选择的对象
+    root.after(1000, update_friend_list)
+
 
 # 主界面
 def send_message():
@@ -286,10 +322,86 @@ def send_image():
     if file_path:
         # 在这里添加将图片发送到聊天框的逻辑
         image = Image.open(file_path)
-        image = image.resize((200, 200), Image.ANTIALIAS)
-        photo = ImageTk.PhotoImage(image)
-        chat_display.image_create(tk.END, image=photo)
-        chat_display.insert(tk.END, "\n")
+        byte_data = ImageByte.image2byte(image)
+        recv = selected_friend.get()
+
+        private_key = None
+        if 'userKeyList' in clientUserData:
+            for key_info in clientUserData['userKeyList']:
+                if key_info.get('friendUser') == recv:
+                    private_key = key_info.get('private_key')
+                    break
+        en_msg = SM4.sm4_encode(private_key, byte_data)
+        data = json.dumps(
+            {
+                'sendname': clientUsername,
+                'recvname': recv,
+                "msg": en_msg
+            }
+        )
+        r = requests.post(
+            'http://127.0.0.1:8000/api/sendMsg',
+            data=data
+        )
+        send_message = f"{clientUsername}成功发送图片给{recv}"
+        chat_display.insert(tk.END, send_message + "\n")
+        chat_display.see(tk.END)
+
+
+# 更新当前用户的数据
+def update_userData():
+    global clientUserData
+    data = json.dumps(
+        {
+            'username': clientUsername,
+        }
+    )
+    r = requests.post(
+        'http://127.0.0.1:8000/api/updateUserData',
+        data=data
+    )
+    clientUserData = r.json()
+
+
+# 更新用户消息列表
+def update_UserData_msg():
+    msg_list = clientUserData.get('msgList', [])
+    update_userData()
+    send = ''
+    if msg_list:
+        for item in msg_list:
+            en_msg = item.get('msg', '')
+            send = item.get('sendUser', '')
+            private_key = None
+            if 'userKeyList' in clientUserData:
+                for key_info in clientUserData['userKeyList']:
+                    if key_info.get('friendUser') == send:
+                        private_key = key_info.get('private_key')
+                        break
+            de_msg = SM4.sm4_decode(private_key, en_msg)
+            de_msg = bytes(de_msg, 'utf-8')
+            byte_str = de_msg[2:-1]
+            byte_data = byte_str.decode('unicode_escape').encode('latin1')
+            image2 = ImageByte.byte2image(byte_data)
+            accept_image = messagebox.askyesno("接收图片", f"你收到了来自 {send} 的一张图片，是否接收？")
+            if accept_image:
+                image2 = ImageByte.byte2image(byte_data)
+                image2.show()
+                chat_display.insert(tk.END, f"来自 {send} 图片已接受并显示\n")
+            else:
+                chat_display.insert(tk.END, f"来自 {send} 图片已拒绝接受\n")
+        data = json.dumps(
+            {
+                'username': clientUsername,
+                'sendUser': send,
+            }
+        )
+        r = requests.post(
+            'http://127.0.0.1:8000/api/msg_clean',
+            data=data
+        )
+        update_userData()
+    root.after(1000, update_UserData_msg)
 
 
 if __name__ == "__main__":

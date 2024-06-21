@@ -13,24 +13,3 @@ def sm3_hash(message: bytes):
     hash_hex = sm3.sm3_hash(msg_list)
     return hash_hex
 
-    # bytes2hex(hash_hex);
-
-    # hash_bytes = bytes.fromhex(hash_hex)
-    # print(hash_bytes)
-
-    # return bytes.hash
-    # return hash
-
-
-# def bytes2hex(bytesData):
-#     hex = binascii.hexlify(bytesData)
-#     print(hex)
-#     print(hex.decode())
-#     return hex
-
-
-# main
-# if __name__ == '__main__':
-#     print("main begin")
-#     message = b"111111"
-#     print(sm3_hash(message))

@@ -18,7 +18,6 @@ def sm4_encode(key, data):
     enHexStr = enRes.hex()
     # print("密文:", enHexStr)
     return enHexStr  # 返回十六进制值
-    # return encrypt_value.hex()
 
 
 def convert_key_to_bytes(key):
@@ -40,20 +39,3 @@ def sm4_decode(key, data):
     deRes = sm4Alg.crypt_ecb(bytes.fromhex(data))  # 开始解密。十六进制类型,ecb模式
     deHexStr = deRes.decode()
     return deHexStr
-
-# 测试函数
-# def test():
-#     key = "E1A90FB64DDE12AE"
-#     strData = "12345abcde"
-#
-#     enHexRes = sm4_encode(key, strData)
-#
-#     print("解密测试===", enHexRes)
-#
-#     sm4_decode(key, enHexRes)
-#
-#
-# # main
-# if __name__ == '__main__':
-#     print("main begin");
-#     test();

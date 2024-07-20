@@ -191,7 +191,7 @@ def login():
         }
     )
     r = requests.post(
-        f'http://192.168.137.1:8000/api/login',
+        f'http://255.255.255.255:8000/api/login',
         data=data
     )
     response = r.json()
@@ -228,7 +228,7 @@ def register():
         }
     )
     r = requests.post(
-        'http://192.168.137.1:8000/api/register',
+        'http://255.255.255.255:8000/api/register',
         data=data
     )
     response = r.json()
@@ -254,7 +254,7 @@ def add_friend():
             }
         )
         r = requests.post(
-            'http://192.168.137.1:8000/api/addFriend',
+            'http://255.255.255.255:8000/api/addFriend',
             data=data
         )
         response = r.json()
@@ -284,7 +284,7 @@ def update_friend_list():
         }
     )
     r = requests.post(
-        'http://192.168.137.1:8000/api/updateFriend',
+        'http://255.255.255.255:8000/api/updateFriend',
         data=data
     )
     friendList = r.json()
@@ -347,7 +347,7 @@ def send_image():
             }
         )
         r = requests.post(
-            'http://192.168.137.1:8000/api/sendMsg',
+            'http://255.255.255.255:8000/api/sendMsg',
             data=data
         )
         send_message = f"{clientUsername}成功发送图片给{recv}"
@@ -364,7 +364,7 @@ def update_userData():
         }
     )
     r = requests.post(
-        'http://192.168.137.1:8000/api/updateUserData',
+        'http://255.255.255.255:8000/api/updateUserData',
         data=data
     )
     clientUserData = r.json()
@@ -426,7 +426,7 @@ def update_UserData_msg():
             }
         )
         r = requests.post(
-            'http://192.168.137.1:8000/api/msg_clean',
+            'http://255.255.255.255:8000/api/msg_clean',
             data=data
         )
         update_userData()

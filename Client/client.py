@@ -5,8 +5,9 @@ import json
 import requests
 from PIL import Image, ImageTk
 from APP.Data.Info import userList, UserData
-from APP.Tool import ImageByte, SM4
+from APP.Tool import ImageByte, SM4, SM3
 from APP.Tool.ImageByte import byte2image
+import time
 
 # 全局变量
 root = None
@@ -190,7 +191,7 @@ def login():
         }
     )
     r = requests.post(
-        f'http://10.34.6.255:8000/api/login',
+        f'http://192.168.137.1:8000/api/login',
         data=data
     )
     response = r.json()
@@ -227,7 +228,7 @@ def register():
         }
     )
     r = requests.post(
-        'http://10.34.6.255:8000/api/register',
+        'http://192.168.137.1:8000/api/register',
         data=data
     )
     response = r.json()
@@ -253,12 +254,13 @@ def add_friend():
             }
         )
         r = requests.post(
-            'http://10.34.6.255:8000/api/addFriend',
+            'http://192.168.137.1:8000/api/addFriend',
             data=data
         )
         response = r.json()
         code = response['code']
         msg = response['msg']
+        privateKey = response['privateKey']
         if code == -1:
             messagebox.showerror('Error', msg)
             friend_entry.delete(0, tk.END)
@@ -266,6 +268,8 @@ def add_friend():
         # 将新的好友添加到好友列表
         else:
             messagebox.showerror('Success', msg)
+            byte_value = privateKey.to_bytes(length=4, byteorder='big', signed=False)
+            chat_display.insert(tk.END, f"和好友{friend_name}的共享密钥为：{SM3.sm3_hash(byte_value)}\n")
             friend_entry.delete(0, tk.END)
             update_friend_list()
             update_userData()
@@ -280,7 +284,7 @@ def update_friend_list():
         }
     )
     r = requests.post(
-        'http://10.34.6.255:8000/api/updateFriend',
+        'http://192.168.137.1:8000/api/updateFriend',
         data=data
     )
     friendList = r.json()
@@ -329,16 +333,21 @@ def send_image():
                 if key_info.get('friendUser') == recv:
                     private_key = key_info.get('private_key')
                     break
+        start_time = time.time()
         en_msg = SM4.sm4_encode(private_key, byte_data)
+        end_time = time.time()
+        chat_display.insert(tk.END, f'图片加密用时：{end_time - start_time:.6f}\n')
         data = json.dumps(
             {
                 'sendname': clientUsername,
                 'recvname': recv,
-                "msg": en_msg
+                'msg': en_msg,
+                'sm3_msg': SM3.sm3_hash(byte_data),
+                'send_time': time.time(),
             }
         )
         r = requests.post(
-            'http://10.34.6.255:8000/api/sendMsg',
+            'http://192.168.137.1:8000/api/sendMsg',
             data=data
         )
         send_message = f"{clientUsername}成功发送图片给{recv}"
@@ -355,7 +364,7 @@ def update_userData():
         }
     )
     r = requests.post(
-        'http://10.34.6.255:8000/api/updateUserData',
+        'http://192.168.137.1:8000/api/updateUserData',
         data=data
     )
     clientUserData = r.json()
@@ -370,24 +379,46 @@ def update_UserData_msg():
         for item in msg_list:
             en_msg = item.get('msg', '')
             send = item.get('sendUser', '')
+            sm3_msg = item.get('sm3_msg', '')
+            send_time = item.get('send_time', '')
             private_key = None
             if 'userKeyList' in clientUserData:
                 for key_info in clientUserData['userKeyList']:
                     if key_info.get('friendUser') == send:
                         private_key = key_info.get('private_key')
                         break
-            de_msg = SM4.sm4_decode(private_key, en_msg)
-            de_msg = bytes(de_msg, 'utf-8')
-            byte_str = de_msg[2:-1]
-            byte_data = byte_str.decode('unicode_escape').encode('latin1')
-            image2 = ImageByte.byte2image(byte_data)
-            accept_image = messagebox.askyesno("接收图片", f"你收到了来自 {send} 的一张图片，是否接收？")
-            if accept_image:
-                image2 = ImageByte.byte2image(byte_data)
-                image2.show()
-                chat_display.insert(tk.END, f"来自 {send} 图片已接受并显示\n")
-            else:
-                chat_display.insert(tk.END, f"来自 {send} 图片已拒绝接受\n")
+
+            def ask_accept_image():
+                # 截断长消息并添加换行符
+                get_time = time.time()
+                chat_display.insert(tk.END, f'图片传输用时：{get_time - send_time:.6f}\n')
+                truncated_msg = (en_msg[:50] + '...') if len(en_msg) > 50 else en_msg
+                display_msg = f"你收到了来自 {send} 的一张图片，是否解密接收？\n密文是:\n{truncated_msg}"
+                accept_image = messagebox.askyesno("接收图片", display_msg)
+                # 接受图片数据
+                if accept_image:
+                    start_time = time.time()
+                    de_msg = SM4.sm4_decode(private_key, en_msg)
+                    end_time = time.time()
+                    de_msg = bytes(de_msg, 'utf-8')
+                    byte_str = de_msg[2:-1]
+                    byte_data = byte_str.decode('unicode_escape').encode('latin1')
+                    new_sm3_msg = SM3.sm3_hash(byte_data)
+                    chat_display.insert(tk.END, f"加密前图片sm3数据为:{sm3_msg}\n解密后图片sm3数据为:{new_sm3_msg} \n")
+                    if new_sm3_msg == sm3_msg:
+                        chat_display.insert(tk.END, f" 经过验证后消息完整度为：{new_sm3_msg == sm3_msg} \n")
+                        image2 = ImageByte.byte2image(byte_data)
+                        image2.show()
+                        chat_display.insert(tk.END, f"来自 {send} 图片已解密并显示\n")
+                        chat_display.insert(tk.END, f"图片解密用时：{end_time - start_time:.6f}\n")
+                    else:
+                        chat_display.insert(tk.END, f" 经过sm3验证后消息完整度：{new_sm3_msg == sm3_msg} \n")
+                # 拒绝解密接受
+                else:
+                    chat_display.insert(tk.END, f"来自 {send} 图片已拒绝解密接受\n")
+
+            chat_display.after(0, ask_accept_image)
+
         data = json.dumps(
             {
                 'username': clientUsername,
@@ -395,7 +426,7 @@ def update_UserData_msg():
             }
         )
         r = requests.post(
-            'http://10.34.6.255:8000/api/msg_clean',
+            'http://192.168.137.1:8000/api/msg_clean',
             data=data
         )
         update_userData()

@@ -143,7 +143,8 @@ def addFriend(request):
                     user.friendList.append(friend)
                     return JsonResponse({
                         'code': 1,
-                        'msg': '添加成功'
+                        'msg': '添加成功',
+                        'privateKey': privateKey
                     })
             return JsonResponse({
                 'code': -1,
@@ -173,9 +174,11 @@ def sendMsg(request):
     send = body['sendname']
     recv = body['recvname']
     msg = body['msg']
+    sm3_msg = body['sm3_msg']
+    send_time = body['send_time']
     for user in userList:
         if user.username == recv:
-            user.msgList.append(MessageData(send, msg))
+            user.msgList.append(MessageData(send, msg, sm3_msg, send_time))
             print(send + '）发送的信息已经存储在（' + recv + '）的消息列表中')
             return JsonResponse({
                 'code': '1',

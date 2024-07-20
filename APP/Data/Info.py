@@ -40,14 +40,18 @@ class UserKeys:
 
 
 class MessageData:
-    def __init__(self, sendUser, msg):
+    def __init__(self, sendUser, msg, sm3_msg, send_time):
         self.sendUser = sendUser
         self.msg = msg
+        self.sm3_msg = sm3_msg
+        self.send_time = send_time
 
     def to_dict(self):
         return {
             'sendUser': self.sendUser,
-            'msg': self.msg
+            'msg': self.msg,
+            'sm3_msg': self.sm3_msg,
+            'send_time': self.send_time
         }
 
 
